@@ -1,0 +1,62 @@
+starting-energy: 5
+max-energy: 10
+energy-per-kill: 1
+energy-per-death: -1
+crystal-energy-value: 1
+respawn-protection-seconds: 5
+blacklisted-worlds: []
+grace-period-minutes: 30
+
+energy-states:
+  RADIANT:
+    cooldown-multiplier: 1.0
+  DIMMED:
+    cooldown-multiplier: 1.1
+  FRACTURED:
+    cooldown-multiplier: 1.2
+  FADING:
+    cooldown-multiplier: 1.3
+  FRAGILE:
+    cooldown-multiplier: 1.4
+  DEPLETED:
+    cooldown-multiplier: 1.6
+
+scoreboard:
+  enabled: true
+  title: "&5&lEssence &d&lWars"
+  lines:
+    - "&fEssence: &d{essence}"
+    - "&fTier: &d{tier}"
+    - "&fEnergy: &d{energy}/{max_energy}"
+    - "&fState: &d{state}"
+
+combat-tag-seconds: 15
+combat-log-punish-enabled: true
+
+storm:
+  dash-distance: 18
+  dash-base-damage: 8
+  chain-damage: 6
+  chain-max-targets: 2
+  chain-radius: 8
+  cooldown-no-hit: 3
+  cooldown-one-hit: 6
+  cooldown-multi-hit: 9
+  speed-buff-duration: 80
+  speed-buff-level: 2
+  max-charges: 10
+  charge-decay-base: 8
+  overload-cooldown: 25
+  minor-damage: 4
+  minor-radius: 10
+  medium-damage: 7
+  medium-radius: 12
+  major-damage: 10
+  major-radius: 15
+  major-chain-damage: 5
+  maximum-damage: 14
+  maximum-radius: 20
+  maximum-chain-damage: 6
+  maximum-chain-bounces: 3
+  maximum-invuln-duration: 60
+  maximum-buff-duration: 200

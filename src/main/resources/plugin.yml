@@ -1,0 +1,24 @@
+name: EssenceWars
+main: com.essencewars.EssenceWarsPlugin
+version: 1.0.0
+api-version: 1.20
+author: EssenceWars
+commands:
+  essence:
+    description: Essence management and abilities
+    usage: /essence
+    aliases: [ess]
+  debug:
+    description: Advanced debug commands
+    usage: /debug <level|track|untrack|logs|stats|clear|file|test|config>
+    permission: essencewars.debug
+permissions:
+  essencewars.use:
+    description: Allows use of Essence Wars abilities and player commands
+    default: true
+  essencewars.admin:
+    description: Allows admin Essence Wars commands
+    default: op
+  essencewars.debug:
+    description: Allows use of advanced debug commands
+    default: op

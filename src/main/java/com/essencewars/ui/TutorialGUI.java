@@ -329,7 +329,7 @@ public class TutorialGUI implements Listener {
                 ChatColor.GRAY + "Your main combat tool",
                 "",
                 ChatColor.GREEN + "Use with:",
-                ChatColor.WHITE + " • Drop key (Q) while standing",
+                ChatColor.WHITE + " • Offhand key (F) while standing",
                 ChatColor.WHITE + " • /essence primary",
                 ChatColor.WHITE + " • Hotkey binding"
             )
@@ -361,7 +361,7 @@ public class TutorialGUI implements Listener {
                 ChatColor.GRAY + "More powerful ultimate ability",
                 "",
                 ChatColor.GREEN + "Use with:",
-                ChatColor.WHITE + " • Drop key (Q) while sneaking",
+                ChatColor.WHITE + " • Offhand key (F) while sneaking",
                 ChatColor.WHITE + " • /essence secondary",
                 ChatColor.WHITE + " • Hotkey binding"
             )
@@ -462,17 +462,20 @@ public class TutorialGUI implements Listener {
         inv.setItem(
             31,
             createButton(
-                Material.SHIELD,
-                ChatColor.GOLD + "Grace Period",
+                Material.DIAMOND_SWORD,
+                ChatColor.RED + "PvP & Combat",
                 "",
-                ChatColor.GRAY + "New players get 30 minutes of",
-                ChatColor.GRAY + "grace period protection.",
+                ChatColor.GRAY + "EssenceWars features competitive PvP!",
                 "",
-                ChatColor.GREEN + "During grace:",
-                ChatColor.YELLOW + " • No energy loss on death",
-                ChatColor.YELLOW + " • 5 seconds spawn protection",
+                ChatColor.YELLOW + "On Death:",
+                ChatColor.RED + " • Lose 1 energy",
+                ChatColor.RED + " • Drop your essence",
                 "",
-                ChatColor.GRAY + "Use this time to learn!"
+                ChatColor.GREEN + "On Kill:",
+                ChatColor.GREEN + " • Gain 1 energy",
+                ChatColor.GREEN + " • Claim dropped essences",
+                "",
+                ChatColor.GRAY + "Team protection: No friendly fire!"
             )
         );
     }
@@ -510,7 +513,7 @@ public class TutorialGUI implements Listener {
                 ChatColor.YELLOW + "/essence secondary",
                 "",
                 ChatColor.GRAY + "Cast your abilities via command",
-                ChatColor.GRAY + "or use Q key!"
+                ChatColor.GRAY + "or use offhand key (F)!"
             )
         );
 

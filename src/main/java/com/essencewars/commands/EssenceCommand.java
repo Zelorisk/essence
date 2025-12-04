@@ -61,6 +61,9 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
             );
             sender.sendMessage(ChatColor.GRAY + "/essence reset <player>");
             sender.sendMessage(
+                ChatColor.GRAY + "/essence resetenergy <player|@a> [amount]"
+            );
+            sender.sendMessage(
                 ChatColor.GRAY +
                     "/essence info " +
                     ChatColor.DARK_GRAY +
@@ -72,8 +75,10 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
                     ChatColor.DARK_GRAY +
                     "- View player statistics"
             );
-            sender.sendMessage(ChatColor.GRAY + "/essence withdraw");
+            sender.sendMessage(ChatColor.GRAY + "/essence withdraw (withdrawenergy) - Withdraw energy as crystal");
+            sender.sendMessage(ChatColor.GRAY + "/essence withdrawessence - Withdraw your essence as an item");
             sender.sendMessage(ChatColor.GRAY + "/essence crystal [amount]");
+            sender.sendMessage(ChatColor.GRAY + "/essence upgrader");
             sender.sendMessage(
                 ChatColor.GRAY +
                     "/essence craft <type> " +
@@ -112,7 +117,13 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
             );
             sender.sendMessage(
                 ChatColor.GRAY +
-                    "/essence team <create|disband|join|leave|info|list|home> ..."
+                    "/essence help " +
+                    ChatColor.DARK_GRAY +
+                    "- Detailed plugin guide and mechanics"
+            );
+            sender.sendMessage(
+                ChatColor.GRAY +
+                    "/essence team <create|disband|invite|accept|leave|kick|promote|demote|info|list|home|warp> ..."
             );
             return true;
         }
@@ -126,16 +137,26 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
                 return handleEnergy(sender, args);
             case "reset":
                 return handleReset(sender, args);
+            case "resetenergy":
+                return handleResetEnergy(sender, args);
             case "info":
                 return handleInfo(sender);
             case "tutorial":
                 return handleTutorial(sender);
+            case "help":
+            case "guide":
+                return handleHelp(sender, args);
             case "stats":
                 return handleStats(sender, args);
             case "withdraw":
-                return handleWithdraw(sender);
+            case "withdrawenergy":
+                return handleWithdrawEnergy(sender);
+            case "withdrawessence":
+                return handleWithdrawEssence(sender);
             case "crystal":
                 return handleCrystal(sender, args);
+            case "upgrader":
+                return handleUpgrader(sender);
             case "craft":
                 return handleCraft(sender, args);
             case "config":
@@ -318,16 +339,98 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleResetEnergy(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("essencewars.admin")) {
+            sender.sendMessage(ChatColor.RED + "No permission.");
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(
+                ChatColor.RED + "Usage: /essence resetenergy <player|@a> [amount]"
+            );
+            return true;
+        }
+
+        // Determine the energy value to set
+        int energyValue;
+        if (args.length >= 3) {
+            try {
+                energyValue = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                sender.sendMessage(ChatColor.RED + "Amount must be a number.");
+                return true;
+            }
+        } else {
+            energyValue = plugin.getConfig().getInt("starting-energy", 5);
+        }
+
+        int maxEnergy = plugin.getConfig().getInt("max-energy", 10);
+        energyValue = Math.min(Math.max(0, energyValue), maxEnergy);
+
+        // Handle @a selector for all players
+        if (args[1].equalsIgnoreCase("@a")) {
+            int count = 0;
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                PlayerEssenceData data = dataManager.getOrCreate(p);
+                data.setEnergy(energyValue);
+                plugin.getScoreboardManager().updateFor(p);
+                p.sendMessage(
+                    ChatColor.LIGHT_PURPLE +
+                        "Your energy has been reset to " +
+                        energyValue +
+                        "."
+                );
+                count++;
+            }
+            sender.sendMessage(
+                ChatColor.GREEN +
+                    "Reset energy to " +
+                    energyValue +
+                    " for " +
+                    count +
+                    " player(s)."
+            );
+            return true;
+        }
+
+        // Handle individual player
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            sender.sendMessage(ChatColor.RED + "Player not found.");
+            return true;
+        }
+
+        PlayerEssenceData data = dataManager.getOrCreate(target);
+        data.setEnergy(energyValue);
+        plugin.getScoreboardManager().updateFor(target);
+
+        sender.sendMessage(
+            ChatColor.GREEN +
+                "Reset " +
+                target.getName() +
+                "'s energy to " +
+                energyValue +
+                "."
+        );
+        target.sendMessage(
+            ChatColor.LIGHT_PURPLE +
+                "Your energy has been reset to " +
+                energyValue +
+                "."
+        );
+        return true;
+    }
+
     private boolean handleInfo(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Players only.");
             return true;
         }
 
-        // Open crafting guide GUI
-        plugin.getCraftingGuideGUI().open(player);
+        // Open infuse recipes GUI
+        plugin.getInfuseRecipesGUI().open(player);
         player.sendMessage(
-            ChatColor.LIGHT_PURPLE + "Opening Essence Crafting Guide..."
+            ChatColor.LIGHT_PURPLE + "INFUSE " + ChatColor.GOLD + "RECIPES" + ChatColor.GRAY + " - Opening..."
         );
         return true;
     }
@@ -343,6 +446,359 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
         player.sendMessage(
             ChatColor.LIGHT_PURPLE + "Opening EssenceWars tutorial..."
         );
+        return true;
+    }
+
+    private boolean handleHelp(CommandSender sender, String[] args) {
+        String topic = args.length >= 2 ? args[1].toLowerCase() : "main";
+
+        switch (topic) {
+            case "main":
+            case "index":
+                return showMainHelp(sender);
+            case "energy":
+                return showEnergyHelp(sender);
+            case "essences":
+            case "essence":
+                return showEssencesHelp(sender);
+            case "tier2":
+            case "tier":
+            case "upgrade":
+                return showTier2Help(sender);
+            case "abilities":
+            case "ability":
+                return showAbilitiesHelp(sender);
+            case "pvp":
+            case "combat":
+                return showPvPHelp(sender);
+            case "teams":
+            case "team":
+                return showTeamsHelp(sender);
+            case "crafting":
+            case "craft":
+                return showCraftingHelp(sender);
+            default:
+                sender.sendMessage(ChatColor.RED + "Unknown help topic. Use /essence help for main menu.");
+                return true;
+        }
+    }
+
+    private boolean showMainHelp(CommandSender sender) {
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("§5§l        ESSENCE WARS - COMPLETE GUIDE");
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("");
+        sender.sendMessage("§d§lWhat is EssenceWars?");
+        sender.sendMessage("§7A PvP-focused plugin where players claim powerful");
+        sender.sendMessage("§7essences, manage energy, and use unique abilities!");
+        sender.sendMessage("");
+        sender.sendMessage("§e§lHelp Topics:");
+        sender.sendMessage("§f/essence help energy §7- Energy system explained");
+        sender.sendMessage("§f/essence help essences §7- All about essences");
+        sender.sendMessage("§f/essence help tier2 §7- Tier II upgrades");
+        sender.sendMessage("§f/essence help abilities §7- Using your powers");
+        sender.sendMessage("§f/essence help pvp §7- Combat and PvP mechanics");
+        sender.sendMessage("§f/essence help teams §7- Team system");
+        sender.sendMessage("§f/essence help crafting §7- Crafting recipes");
+        sender.sendMessage("");
+        sender.sendMessage("§b§lQuick Start:");
+        sender.sendMessage("§71. Get an essence by finding/crafting essence items");
+        sender.sendMessage("§72. Right-click to absorb and claim ownership");
+        sender.sendMessage("§73. Use Q (or commands) to cast abilities");
+        sender.sendMessage("§74. Gain energy by killing players");
+        sender.sendMessage("§75. Reach Tier II to unlock Divine essence!");
+        sender.sendMessage("§5§m                                                ");
+        return true;
+    }
+
+    private boolean showEnergyHelp(CommandSender sender) {
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("§5§l           ENERGY SYSTEM GUIDE");
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("");
+        sender.sendMessage("§d§lWhat is Energy?");
+        sender.sendMessage("§7Energy is your life force and ability resource.");
+        sender.sendMessage("§7It determines your power level and energy state.");
+        sender.sendMessage("");
+        sender.sendMessage("§e§lHow to Get Energy:");
+        sender.sendMessage("§a✓ §fStart with §a" + plugin.getConfig().getInt("starting-energy", 5) + " energy §7when you join");
+        sender.sendMessage("§a✓ §fKill players: §a+1 energy");
+        sender.sendMessage("§a✓ §fPick up energy crystals");
+        sender.sendMessage("§a✓ §fRight-click energy crystals to absorb them");
+        sender.sendMessage("§a✓ §fCraft energy crystals (see /essence help crafting)");
+        sender.sendMessage("");
+        sender.sendMessage("§c§lHow to Lose Energy:");
+        sender.sendMessage("§c✗ §fDie: §c-1 energy");
+        sender.sendMessage("§c✗ §fSome abilities cost energy to use");
+        sender.sendMessage("");
+        sender.sendMessage("§b§lEnergy States:");
+        sender.sendMessage("§7Your energy determines your state and power:");
+        sender.sendMessage("§a§l10-9 RADIANT §7- Full power");
+        sender.sendMessage("§e§l8-7 DIMMED §7- Slight cooldown increase");
+        sender.sendMessage("§6§l6-5 FRACTURED §7- Moderate cooldown increase");
+        sender.sendMessage("§6§l4-3 FADING §7- Higher cooldown increase");
+        sender.sendMessage("§c§l2-1 FRAGILE §7- Significant cooldown increase");
+        sender.sendMessage("§4§l0 DEPLETED §7- Cannot use abilities!");
+        sender.sendMessage("");
+        sender.sendMessage("§f§lCommands:");
+        sender.sendMessage("§f/essence withdraw §7- Convert energy to crystal");
+        sender.sendMessage("§f/essence stats §7- View your energy and stats");
+        sender.sendMessage("§5§m                                                ");
+        return true;
+    }
+
+    private boolean showEssencesHelp(CommandSender sender) {
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("§5§l          ESSENCES GUIDE");
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("");
+        sender.sendMessage("§d§lWhat are Essences?");
+        sender.sendMessage("§7Essences are powerful forces that grant unique");
+        sender.sendMessage("§7abilities. Only ONE player can own each essence!");
+        sender.sendMessage("");
+        sender.sendMessage("§e§lAvailable Essences (Tier I):");
+        sender.sendMessage("§5§lVoid §7- Singularity pull + Guillotine execute");
+        sender.sendMessage("§6§lInferno §7- Flame mines + Phoenix rebirth");
+        sender.sendMessage("§a§lNature §7- Poison vines + Primal surge");
+        sender.sendMessage("§b§lOracle §7- Prophetic vision + Fate's curse");
+        sender.sendMessage("§8§lPhantom §7- Shadowmeld + Execution strike");
+        sender.sendMessage("§7§lTitan §7- Seismic slam + Colossus form");
+        sender.sendMessage("§d§lArcane §7- Arcane dice + Emergency teleport");
+        sender.sendMessage("");
+        sender.sendMessage("§6§l§nTier II Essence:");
+        sender.sendMessage("§6§l§lDIVINE §7- Ultimate power (requires Tier II!)");
+        sender.sendMessage("§7Omnipotent strike + Dragon ascension");
+        sender.sendMessage("");
+        sender.sendMessage("§c§lEssence Ownership:");
+        sender.sendMessage("§7• Each essence can only be owned by ONE player");
+        sender.sendMessage("§7• Right-click essence item to claim it");
+        sender.sendMessage("§7• When you die, you DROP your essence!");
+        sender.sendMessage("§7• Other players can pick it up and claim it");
+        sender.sendMessage("§7• Compete to control the most powerful essences!");
+        sender.sendMessage("");
+        sender.sendMessage("§f§lHow to Get Essences:");
+        sender.sendMessage("§f/essence help crafting §7- See crafting recipes");
+        sender.sendMessage("§f/essence info §7- View all essence recipes");
+        sender.sendMessage("§5§m                                                ");
+        return true;
+    }
+
+    private boolean showTier2Help(CommandSender sender) {
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("§5§l          TIER II UPGRADE GUIDE");
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("");
+        sender.sendMessage("§d§lWhat is Tier II?");
+        sender.sendMessage("§7Tier II is an advanced upgrade that unlocks:");
+        sender.sendMessage("§a✓ §7Access to the §6§lDivine Essence");
+        sender.sendMessage("§a✓ §7Enhanced abilities for all essences");
+        sender.sendMessage("§a✓ §7Stronger secondary abilities");
+        sender.sendMessage("§a✓ §7Prestige and power over other players");
+        sender.sendMessage("");
+        sender.sendMessage("§e§lHow to Get Tier II:");
+        sender.sendMessage("§7Craft the §6§lEssence Upgrader §7and right-click it!");
+        sender.sendMessage("");
+        sender.sendMessage("§6§lCrafting Recipe:");
+        sender.sendMessage("§7  D = Diamond, E = Enchanted Golden Apple");
+        sender.sendMessage("§7  G = Gold Block, N = Nether Star, B = Blaze Rod");
+        sender.sendMessage("");
+        sender.sendMessage("§f   [D] [E] [D]");
+        sender.sendMessage("§f   [G] [N] [G]");
+        sender.sendMessage("§f   [D] [B] [D]");
+        sender.sendMessage("");
+        sender.sendMessage("§c§lRequirements:");
+        sender.sendMessage("§7  • Kill the Wither Boss (for Nether Star)");
+        sender.sendMessage("§7  • Mine 4 Diamonds");
+        sender.sendMessage("§7  • Craft 2 Gold Blocks");
+        sender.sendMessage("§7  • Find an Enchanted Golden Apple");
+        sender.sendMessage("§7  • Get a Blaze Rod from the Nether");
+        sender.sendMessage("");
+        sender.sendMessage("§a§lThis is challenging but achievable!");
+        sender.sendMessage("§f/essence help crafting §7- More crafting info");
+        sender.sendMessage("");
+        sender.sendMessage("§8Admin: §f/essence upgrade <player> §7- Force upgrade");
+        sender.sendMessage("");
+        sender.sendMessage("§6§l§lDIVINE ESSENCE:");
+        sender.sendMessage("§7The Divine Essence is the ultimate power!");
+        sender.sendMessage("§7Only Tier II players can absorb it.");
+        sender.sendMessage("");
+        sender.sendMessage("§6Primary: §fOmnipotent Strike");
+        sender.sendMessage("§7  Devastating AoE attack in a large radius");
+        sender.sendMessage("§6Secondary: §fDragon Ascension");
+        sender.sendMessage("§7  Transform into a dragon with:");
+        sender.sendMessage("§7  • Massive damage multiplier");
+        sender.sendMessage("§7  • Enhanced movement");
+        sender.sendMessage("§7  • Increased kill rewards");
+        sender.sendMessage("");
+        sender.sendMessage("§c§lNote: §7Contact server admins to learn how");
+        sender.sendMessage("§7to achieve Tier II on this server!");
+        sender.sendMessage("§5§m                                                ");
+        return true;
+    }
+
+    private boolean showAbilitiesHelp(CommandSender sender) {
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("§5§l         ABILITIES GUIDE");
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("");
+        sender.sendMessage("§d§lUsing Your Abilities:");
+        sender.sendMessage("§7Each essence has TWO abilities:");
+        sender.sendMessage("§e§lPrimary §7- Main attack/utility");
+        sender.sendMessage("§e§lSecondary §7- Ultimate/powerful ability");
+        sender.sendMessage("");
+        sender.sendMessage("§b§lHow to Cast Abilities:");
+        sender.sendMessage("§f1. Offhand Key (F) §7(default):");
+        sender.sendMessage("   §7Press F = Primary ability");
+        sender.sendMessage("   §7Shift+F = Secondary ability");
+        sender.sendMessage("§f2. Commands:");
+        sender.sendMessage("   §f/essence primary §7- Cast primary");
+        sender.sendMessage("   §f/essence secondary §7- Cast secondary");
+        sender.sendMessage("§f3. Custom Hotkeys:");
+        sender.sendMessage("   §f/essence hotkey primary §7- Bind primary");
+        sender.sendMessage("   §f/essence hotkey secondary §7- Bind secondary");
+        sender.sendMessage("   §7Then set in Minecraft keybinds!");
+        sender.sendMessage("");
+        sender.sendMessage("§c§lCooldowns:");
+        sender.sendMessage("§7Abilities have cooldowns based on your energy state.");
+        sender.sendMessage("§7Lower energy = longer cooldowns!");
+        sender.sendMessage("§7Stay at high energy for maximum power.");
+        sender.sendMessage("");
+        sender.sendMessage("§e§lConfiguration:");
+        sender.sendMessage("§f/essence config §7- Open settings GUI");
+        sender.sendMessage("§7Customize ability parameters and offhand key behavior");
+        sender.sendMessage("");
+        sender.sendMessage("§f§lView All Abilities:");
+        sender.sendMessage("§f/essence help essences §7- See all essence abilities");
+        sender.sendMessage("§5§m                                                ");
+        return true;
+    }
+
+    private boolean showPvPHelp(CommandSender sender) {
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("§5§l         PVP & COMBAT GUIDE");
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("");
+        sender.sendMessage("§d§lCombat System:");
+        sender.sendMessage("§7EssenceWars features competitive PvP where");
+        sender.sendMessage("§7essences are at stake!");
+        sender.sendMessage("");
+        sender.sendMessage("§e§lWhat Happens When You Die:");
+        sender.sendMessage("§c✗ §fLose §c1 energy");
+        sender.sendMessage("§c✗ §fDROP YOUR ESSENCE §7(if you have one)");
+        sender.sendMessage("§c✗ §fOthers can claim your essence!");
+        sender.sendMessage("");
+        sender.sendMessage("§a§lWhat Happens When You Kill:");
+        sender.sendMessage("§a✓ §fGain §a+1 energy");
+        sender.sendMessage("§a✓ §fCan claim dropped essences");
+        sender.sendMessage("§a✓ §fSome abilities reward kills");
+        sender.sendMessage("");
+        sender.sendMessage("§b§lProtections:");
+        sender.sendMessage("§7• §aTeam Protection: §7Cannot damage teammates");
+        sender.sendMessage("");
+        sender.sendMessage("§6§lCombat Tips:");
+        sender.sendMessage("§7• Keep your energy HIGH for shorter cooldowns");
+        sender.sendMessage("§7• Use abilities strategically");
+        sender.sendMessage("§7• Protect your essence - you drop it on death!");
+        sender.sendMessage("§7• Team up with others for safety");
+        sender.sendMessage("§7• Master your essence's abilities");
+        sender.sendMessage("");
+        sender.sendMessage("§f§lCommands:");
+        sender.sendMessage("§f/essence stats [player] §7- Check combat stats");
+        sender.sendMessage("§5§m                                                ");
+        return true;
+    }
+
+    private boolean showTeamsHelp(CommandSender sender) {
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("§5§l            TEAMS GUIDE");
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("");
+        sender.sendMessage("§d§lWhat are Teams?");
+        sender.sendMessage("§7Form teams with other players for:");
+        sender.sendMessage("§a✓ §7Friendly fire protection");
+        sender.sendMessage("§a✓ §7Shared team homes");
+        sender.sendMessage("§a✓ §7Coordinated essence control");
+        sender.sendMessage("§a✓ §7Social gameplay");
+        sender.sendMessage("");
+        sender.sendMessage("§e§lTeam Commands:");
+        sender.sendMessage("§f/essence team create <name> §7- Create a team");
+        sender.sendMessage("§f/essence team invite <player> §7- Invite someone");
+        sender.sendMessage("§f/essence team accept <team> §7- Accept invitation");
+        sender.sendMessage("§f/essence team leave §7- Leave your team");
+        sender.sendMessage("§f/essence team disband §7- Disband (owner only)");
+        sender.sendMessage("§f/essence team info [player] §7- View team info");
+        sender.sendMessage("§f/essence team list §7- List all teams");
+        sender.sendMessage("");
+        sender.sendMessage("§b§lTeam Management:");
+        sender.sendMessage("§f/essence team kick <player> §7- Remove member");
+        sender.sendMessage("§f/essence team promote <player> §7- Make admin");
+        sender.sendMessage("§f/essence team demote <player> §7- Remove admin");
+        sender.sendMessage("");
+        sender.sendMessage("§6§lTeam Homes:");
+        sender.sendMessage("§f/essence team home create <name> §7- Set home");
+        sender.sendMessage("§f/essence team home warp <name> §7- Teleport");
+        sender.sendMessage("§f/essence team home list §7- List all homes");
+        sender.sendMessage("§f/essence team home delete <name> §7- Remove home");
+        sender.sendMessage("");
+        sender.sendMessage("§7§lRanks:");
+        sender.sendMessage("§6Owner §7- Full control, can disband team");
+        sender.sendMessage("§eAdmin §7- Invite, kick, manage members");
+        sender.sendMessage("§7Member §7- Regular team member");
+        sender.sendMessage("§5§m                                                ");
+        return true;
+    }
+
+    private boolean showCraftingHelp(CommandSender sender) {
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("§5§l          CRAFTING GUIDE");
+        sender.sendMessage("§5§m                                                ");
+        sender.sendMessage("");
+        sender.sendMessage("§d§lEnergy Crystal Recipe:");
+        sender.sendMessage("§7Craft energy crystals to store and trade energy!");
+        sender.sendMessage("");
+        sender.sendMessage("§f   [ ] [A] [ ]");
+        sender.sendMessage("§f   [A] [B] [A]");
+        sender.sendMessage("§f   [ ] [C] [ ]");
+        sender.sendMessage("");
+        sender.sendMessage("§b[A] §f= Amethyst Shard");
+        sender.sendMessage("§d[B] §f= Ender Pearl");
+        sender.sendMessage("§b[C] §f= Diamond");
+        sender.sendMessage("");
+        sender.sendMessage("§aResult: §fEnergy Crystal (" + plugin.getConfig().getInt("crystal-energy-value", 1) + " energy)");
+        sender.sendMessage("§7Right-click to absorb the energy!");
+        sender.sendMessage("");
+        sender.sendMessage("§6§l§nEssence Upgrader Recipe:");
+        sender.sendMessage("§7Upgrade to Tier II and unlock Divine Essence!");
+        sender.sendMessage("");
+        sender.sendMessage("§f   [D] [E] [D]");
+        sender.sendMessage("§f   [G] [N] [G]");
+        sender.sendMessage("§f   [D] [B] [D]");
+        sender.sendMessage("");
+        sender.sendMessage("§e[D] §f= Diamond  §6[E] §f= Enchanted Golden Apple");
+        sender.sendMessage("§6[G] §f= Gold Block  §f[N] §f= Nether Star");
+        sender.sendMessage("§6[B] §f= Blaze Rod");
+        sender.sendMessage("");
+        sender.sendMessage("§aResult: §6§lEssence Upgrader");
+        sender.sendMessage("§7Right-click to become Tier II!");
+        sender.sendMessage("§c§lVery difficult - requires killing the Wither!");
+        sender.sendMessage("");
+        sender.sendMessage("§e§lEssence Infusion:");
+        sender.sendMessage("§7Each essence has its own infusion recipe.");
+        sender.sendMessage("§7Use these commands to view recipes:");
+        sender.sendMessage("");
+        sender.sendMessage("§f/essence info §7- Open " + ChatColor.LIGHT_PURPLE + "INFUSE " + ChatColor.GOLD + "RECIPES " + ChatColor.GRAY + "GUI");
+        sender.sendMessage("§7  §8(Interactive menu with all infusion recipes)");
+        sender.sendMessage("");
+        sender.sendMessage("§6§lCrafting Tips:");
+        sender.sendMessage("§7• Essence items are rare and valuable");
+        sender.sendMessage("§7• Only one person can own each essence");
+        sender.sendMessage("§7• Craft energy crystals to trade energy");
+        sender.sendMessage("§7• Use /essence withdraw to convert energy");
+        sender.sendMessage("§7  §8(Must have at least " + plugin.getConfig().getInt("crystal-energy-value", 1) + " energy)");
+        sender.sendMessage("");
+        sender.sendMessage("§c§lNote: §7Essence recipes may be customized");
+        sender.sendMessage("§7by server admins. Check /essence info!");
+        sender.sendMessage("§5§m                                                ");
         return true;
     }
 
@@ -391,7 +847,7 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private boolean handleWithdraw(CommandSender sender) {
+    private boolean handleWithdrawEnergy(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Players only.");
             return true;
@@ -412,18 +868,69 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
         }
         int maxEnergy = plugin.getConfig().getInt("max-energy", 10);
         data.addEnergy(-value, maxEnergy);
-        player
-            .getWorld()
-            .dropItemNaturally(
-                player.getLocation(),
-                EnergyCrystalItem.create(value)
-            );
+        player.getInventory().addItem(EnergyCrystalItem.create(value));
         player.sendMessage(
             ChatColor.LIGHT_PURPLE +
                 "Withdrew " +
                 value +
                 " energy as a crystal."
         );
+        plugin.getScoreboardManager().updateFor(player);
+        return true;
+    }
+
+    private boolean handleWithdrawEssence(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Players only.");
+            return true;
+        }
+
+        PlayerEssenceData data = dataManager.getOrCreate(player);
+        EssenceType currentEssence = data.getEssenceType();
+
+        if (currentEssence == null) {
+            player.sendMessage(
+                ChatColor.RED + "You don't have an essence to withdraw!"
+            );
+            return true;
+        }
+
+        // Get the icon for this essence type
+        Material icon;
+        switch (currentEssence) {
+            case VOID -> icon = Material.ENDER_PEARL;
+            case INFERNO -> icon = Material.BLAZE_ROD;
+            case NATURE -> icon = Material.OAK_SAPLING;
+            case ORACLE -> icon = Material.BEACON;
+            case PHANTOM -> icon = Material.PHANTOM_MEMBRANE;
+            case TITAN -> icon = Material.ANVIL;
+            case ARCANE -> icon = Material.ENCHANTED_BOOK;
+            case DIVINE -> icon = Material.TOTEM_OF_UNDYING;
+            default -> icon = Material.PAPER;
+        }
+
+        // Create the essence craft item
+        ItemStack essenceCraft = plugin.getCraftManager().createEssenceCraft(currentEssence, icon);
+
+        // Remove the player's essence and ownership
+        data.setEssenceType(null);
+        dataManager.save(data);
+        plugin.removeEssenceOwner(currentEssence, player.getUniqueId());
+
+        // Give the player the essence craft item
+        player.getInventory().addItem(essenceCraft);
+
+        player.sendMessage(
+            ChatColor.LIGHT_PURPLE +
+                "Withdrew your " +
+                currentEssence.getDisplayName() +
+                " Essence as an item!"
+        );
+        player.sendMessage(
+            ChatColor.GRAY +
+                "Right-click it to reclaim your essence, or trade it to another player."
+        );
+
         plugin.getScoreboardManager().updateFor(player);
         return true;
     }
@@ -639,6 +1146,28 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleUpgrader(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Players only.");
+            return true;
+        }
+        if (!sender.hasPermission("essencewars.admin")) {
+            sender.sendMessage(ChatColor.RED + "No permission.");
+            return true;
+        }
+        if (com.essencewars.items.EssenceUpgraderItem.hasUpgrader(player)) {
+            player.sendMessage(
+                ChatColor.RED + "You already have an essence upgrader."
+            );
+            return true;
+        }
+        player.getInventory().addItem(com.essencewars.items.EssenceUpgraderItem.create());
+        sender.sendMessage(
+            ChatColor.GREEN + "Gave essence upgrader to " + player.getName() + "."
+        );
+        return true;
+    }
+
     private boolean handleCraft(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage("Players only.");
@@ -700,7 +1229,7 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
         if (args.length < 2) {
             player.sendMessage(
                 ChatColor.RED +
-                    "Usage: /essence team <create|disband|join|leave|info|list|home> ..."
+                    "Usage: /essence team <create|disband|invite|accept|leave|kick|promote|demote|info|list|home|warp> ..."
             );
             return true;
         }
@@ -752,10 +1281,64 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
                     ChatColor.LIGHT_PURPLE + "Your team has been disbanded."
                 );
                 return true;
-            case "join":
+            case "invite":
                 if (args.length < 3) {
                     player.sendMessage(
-                        ChatColor.RED + "Usage: /essence team join <name>"
+                        ChatColor.RED + "Usage: /essence team invite <player>"
+                    );
+                    return true;
+                }
+                Team inviterTeam = teamManager.getTeam(player);
+                if (inviterTeam == null) {
+                    player.sendMessage(
+                        ChatColor.RED + "You are not in a team."
+                    );
+                    return true;
+                }
+                if (!inviterTeam.isOwnerOrAdmin(player.getUniqueId())) {
+                    player.sendMessage(
+                        ChatColor.RED + "Only team owners and admins can invite players."
+                    );
+                    return true;
+                }
+                Player invitee = Bukkit.getPlayerExact(args[2]);
+                if (invitee == null) {
+                    player.sendMessage(ChatColor.RED + "Player not found.");
+                    return true;
+                }
+                if (teamManager.getTeam(invitee) != null) {
+                    player.sendMessage(
+                        ChatColor.RED + "That player is already in a team."
+                    );
+                    return true;
+                }
+                if (teamManager.hasInvitation(invitee.getUniqueId(), inviterTeam)) {
+                    player.sendMessage(
+                        ChatColor.RED + "That player already has a pending invitation."
+                    );
+                    return true;
+                }
+                teamManager.invitePlayer(inviterTeam, invitee.getUniqueId());
+                teamManager.save();
+                player.sendMessage(
+                    ChatColor.LIGHT_PURPLE + "Invited " + invitee.getName() + " to your team."
+                );
+                invitee.sendMessage(
+                    ChatColor.LIGHT_PURPLE +
+                        "You have been invited to join team " +
+                        inviterTeam.getName() +
+                        ". Use " +
+                        ChatColor.GRAY +
+                        "/essence team accept " +
+                        inviterTeam.getName() +
+                        ChatColor.LIGHT_PURPLE +
+                        " to accept."
+                );
+                return true;
+            case "accept":
+                if (args.length < 3) {
+                    player.sendMessage(
+                        ChatColor.RED + "Usage: /essence team accept <team>"
                     );
                     return true;
                 }
@@ -765,18 +1348,36 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
                     );
                     return true;
                 }
-                if (!teamManager.joinTeam(args[2], player)) {
+                Team teamToJoin = teamManager.getTeam(args[2]);
+                if (teamToJoin == null) {
                     player.sendMessage(
-                        ChatColor.RED + "Could not join that team."
+                        ChatColor.RED + "Team not found."
                     );
                     return true;
                 }
+                if (!teamManager.acceptInvitation(player, teamToJoin)) {
+                    player.sendMessage(
+                        ChatColor.RED + "You do not have an invitation to that team."
+                    );
+                    return true;
+                }
+                teamManager.save();
                 player.sendMessage(
-                    ChatColor.LIGHT_PURPLE +
-                        "You joined team " +
-                        teamManager.getTeam(player).getName() +
-                        "."
+                    ChatColor.LIGHT_PURPLE + "You joined team " + teamToJoin.getName() + "!"
                 );
+                // Notify team members
+                for (java.util.UUID memberId : teamToJoin.getMembers()) {
+                    Player member = Bukkit.getPlayer(memberId);
+                    if (member != null && !member.equals(player)) {
+                        member.sendMessage(
+                            ChatColor.LIGHT_PURPLE +
+                                "[Team] " +
+                                ChatColor.GRAY +
+                                player.getName() +
+                                " has joined the team!"
+                        );
+                    }
+                }
                 return true;
             case "leave":
                 if (!teamManager.leaveTeam(player)) {
@@ -788,6 +1389,181 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
                 }
                 player.sendMessage(
                     ChatColor.LIGHT_PURPLE + "You left your team."
+                );
+                return true;
+            case "kick":
+                if (args.length < 3) {
+                    player.sendMessage(
+                        ChatColor.RED + "Usage: /essence team kick <player>"
+                    );
+                    return true;
+                }
+                Team kickerTeam = teamManager.getTeam(player);
+                if (kickerTeam == null) {
+                    player.sendMessage(
+                        ChatColor.RED + "You are not in a team."
+                    );
+                    return true;
+                }
+                if (!kickerTeam.isOwnerOrAdmin(player.getUniqueId())) {
+                    player.sendMessage(
+                        ChatColor.RED + "Only team owners and admins can kick players."
+                    );
+                    return true;
+                }
+                Player kickTarget = Bukkit.getPlayerExact(args[2]);
+                java.util.UUID kickTargetId = null;
+                if (kickTarget != null) {
+                    kickTargetId = kickTarget.getUniqueId();
+                } else {
+                    // Try to find offline player by name
+                    for (java.util.UUID memberId : kickerTeam.getMembers()) {
+                        Player member = Bukkit.getPlayer(memberId);
+                        if (member != null && member.getName().equalsIgnoreCase(args[2])) {
+                            kickTargetId = memberId;
+                            kickTarget = member;
+                            break;
+                        }
+                    }
+                }
+                if (kickTargetId == null) {
+                    player.sendMessage(ChatColor.RED + "Player not found.");
+                    return true;
+                }
+                if (!kickerTeam.isMember(kickTargetId)) {
+                    player.sendMessage(
+                        ChatColor.RED + "That player is not in your team."
+                    );
+                    return true;
+                }
+                if (kickTargetId.equals(kickerTeam.getOwner())) {
+                    player.sendMessage(
+                        ChatColor.RED + "You cannot kick the team owner."
+                    );
+                    return true;
+                }
+                // Admins cannot kick other admins, only owner can
+                if (!kickerTeam.isOwner(player.getUniqueId()) &&
+                    kickerTeam.isAdmin(kickTargetId)) {
+                    player.sendMessage(
+                        ChatColor.RED + "Only the owner can kick admins."
+                    );
+                    return true;
+                }
+                kickerTeam.removeMember(kickTargetId);
+                teamManager.leaveTeam(Bukkit.getPlayer(kickTargetId));
+                teamManager.save();
+                player.sendMessage(
+                    ChatColor.LIGHT_PURPLE + "Kicked " + args[2] + " from the team."
+                );
+                if (kickTarget != null) {
+                    kickTarget.sendMessage(
+                        ChatColor.RED + "You have been kicked from team " + kickerTeam.getName() + "."
+                    );
+                }
+                return true;
+            case "promote":
+                if (args.length < 3) {
+                    player.sendMessage(
+                        ChatColor.RED + "Usage: /essence team promote <player>"
+                    );
+                    return true;
+                }
+                Team promoteTeam = teamManager.getTeam(player);
+                if (promoteTeam == null) {
+                    player.sendMessage(
+                        ChatColor.RED + "You are not in a team."
+                    );
+                    return true;
+                }
+                if (!promoteTeam.isOwner(player.getUniqueId())) {
+                    player.sendMessage(
+                        ChatColor.RED + "Only the team owner can promote players."
+                    );
+                    return true;
+                }
+                Player promoteTarget = Bukkit.getPlayerExact(args[2]);
+                if (promoteTarget == null) {
+                    player.sendMessage(ChatColor.RED + "Player not found.");
+                    return true;
+                }
+                if (!promoteTeam.isMember(promoteTarget.getUniqueId())) {
+                    player.sendMessage(
+                        ChatColor.RED + "That player is not in your team."
+                    );
+                    return true;
+                }
+                if (promoteTarget.getUniqueId().equals(promoteTeam.getOwner())) {
+                    player.sendMessage(
+                        ChatColor.RED + "That player is already the owner."
+                    );
+                    return true;
+                }
+                if (promoteTeam.isAdmin(promoteTarget.getUniqueId())) {
+                    player.sendMessage(
+                        ChatColor.RED + "That player is already an admin."
+                    );
+                    return true;
+                }
+                promoteTeam.setRank(promoteTarget.getUniqueId(), Team.TeamRank.ADMIN);
+                teamManager.save();
+                player.sendMessage(
+                    ChatColor.LIGHT_PURPLE + "Promoted " + promoteTarget.getName() + " to admin."
+                );
+                promoteTarget.sendMessage(
+                    ChatColor.LIGHT_PURPLE + "You have been promoted to admin in team " + promoteTeam.getName() + "!"
+                );
+                return true;
+            case "demote":
+                if (args.length < 3) {
+                    player.sendMessage(
+                        ChatColor.RED + "Usage: /essence team demote <player>"
+                    );
+                    return true;
+                }
+                Team demoteTeam = teamManager.getTeam(player);
+                if (demoteTeam == null) {
+                    player.sendMessage(
+                        ChatColor.RED + "You are not in a team."
+                    );
+                    return true;
+                }
+                if (!demoteTeam.isOwner(player.getUniqueId())) {
+                    player.sendMessage(
+                        ChatColor.RED + "Only the team owner can demote players."
+                    );
+                    return true;
+                }
+                Player demoteTarget = Bukkit.getPlayerExact(args[2]);
+                if (demoteTarget == null) {
+                    player.sendMessage(ChatColor.RED + "Player not found.");
+                    return true;
+                }
+                if (!demoteTeam.isMember(demoteTarget.getUniqueId())) {
+                    player.sendMessage(
+                        ChatColor.RED + "That player is not in your team."
+                    );
+                    return true;
+                }
+                if (demoteTarget.getUniqueId().equals(demoteTeam.getOwner())) {
+                    player.sendMessage(
+                        ChatColor.RED + "You cannot demote the owner."
+                    );
+                    return true;
+                }
+                if (!demoteTeam.isAdmin(demoteTarget.getUniqueId())) {
+                    player.sendMessage(
+                        ChatColor.RED + "That player is not an admin."
+                    );
+                    return true;
+                }
+                demoteTeam.setRank(demoteTarget.getUniqueId(), Team.TeamRank.MEMBER);
+                teamManager.save();
+                player.sendMessage(
+                    ChatColor.LIGHT_PURPLE + "Demoted " + demoteTarget.getName() + " to member."
+                );
+                demoteTarget.sendMessage(
+                    ChatColor.RED + "You have been demoted to member in team " + demoteTeam.getName() + "."
                 );
                 return true;
             case "info":
@@ -822,6 +1598,26 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
                 return true;
             case "home":
                 return handleTeamHome(player, args);
+            case "warp":
+                Team warpTeam = teamManager.getTeam(player);
+                if (warpTeam == null) {
+                    player.sendMessage(ChatColor.RED + "You are not in a team!");
+                    return true;
+                }
+                if (args.length < 3) {
+                    player.sendMessage(ChatColor.RED + "Usage: /essence team warp <name>");
+                    return true;
+                }
+                String warpName = args[2];
+                TeamHome warpTeamHome = teamManager.getTeamHome(warpTeam);
+                Location warpLoc = warpTeamHome.getHome(warpName);
+                if (warpLoc == null) {
+                    player.sendMessage(ChatColor.RED + "Home '" + warpName + "' not found!");
+                    return true;
+                }
+                player.teleport(warpLoc);
+                player.sendMessage(ChatColor.GREEN + "Teleported to team home '" + warpName + "'!");
+                return true;
             default:
                 player.sendMessage(ChatColor.RED + "Unknown team subcommand.");
                 return true;
@@ -848,7 +1644,16 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
             if (members.length() > 0) {
                 members.append(", ");
             }
-            members.append(getName(id));
+            Team.TeamRank rank = team.getRank(id);
+            String rankColor = switch (rank) {
+                case OWNER -> ChatColor.GOLD.toString();
+                case ADMIN -> ChatColor.YELLOW.toString();
+                case MEMBER -> ChatColor.GRAY.toString();
+            };
+            members.append(rankColor).append(getName(id));
+            if (rank != Team.TeamRank.MEMBER) {
+                members.append(ChatColor.DARK_GRAY).append(" [").append(rank.getDisplayName()).append("]");
+            }
         }
         viewer.sendMessage(ChatColor.GRAY + " Members: " + members);
     }
@@ -980,35 +1785,48 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
                 "upgrade",
                 "energy",
                 "reset",
+                "resetenergy",
                 "info",
                 "tutorial",
                 "stats",
                 "withdraw",
+                "withdrawenergy",
+                "withdrawessence",
                 "crystal",
+                "upgrader",
                 "config",
                 "adminconfig",
                 "team",
                 "primary",
                 "secondary",
-                "hotkey"
+                "hotkey",
+                "craft"
             );
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("hotkey")) {
             return Arrays.asList("primary", "secondary");
         }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("help") || args[0].equalsIgnoreCase("guide"))) {
+            return Arrays.asList("energy", "essences", "tier2", "abilities", "pvp", "teams", "crafting");
+        }
         if (args.length == 2 && args[0].equalsIgnoreCase("team")) {
             return Arrays.asList(
                 "create",
                 "disband",
-                "join",
+                "invite",
+                "accept",
                 "leave",
+                "kick",
+                "promote",
+                "demote",
                 "info",
                 "list",
-                "home"
+                "home",
+                "warp"
             );
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("team")) {
-            if (args[1].equalsIgnoreCase("join")) {
+            if (args[1].equalsIgnoreCase("accept")) {
                 List<String> names = new ArrayList<>();
                 for (Team t : teamManager.getTeams()) {
                     names.add(t.getName());
@@ -1021,6 +1839,24 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
                     names.add(p.getName());
                 }
                 return names;
+            }
+            if (args[1].equalsIgnoreCase("invite") ||
+                args[1].equalsIgnoreCase("kick") ||
+                args[1].equalsIgnoreCase("promote") ||
+                args[1].equalsIgnoreCase("demote")) {
+                List<String> names = new ArrayList<>();
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    names.add(p.getName());
+                }
+                return names;
+            }
+            if (args[1].equalsIgnoreCase("warp")) {
+                Player player = (Player) sender;
+                Team team = teamManager.getTeam(player);
+                if (team != null) {
+                    TeamHome teamHome = teamManager.getTeamHome(team);
+                    return new ArrayList<>(teamHome.getHomeNames());
+                }
             }
         }
         if (
@@ -1054,6 +1890,14 @@ public class EssenceCommand implements CommandExecutor, TabCompleter {
             ).contains(args[0].toLowerCase())
         ) {
             List<String> names = new ArrayList<>();
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                names.add(p.getName());
+            }
+            return names;
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("resetenergy")) {
+            List<String> names = new ArrayList<>();
+            names.add("@a");
             for (Player p : Bukkit.getOnlinePlayers()) {
                 names.add(p.getName());
             }

@@ -15,10 +15,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 
 public class PlayerListener implements Listener {
 
@@ -48,7 +48,6 @@ public class PlayerListener implements Listener {
                     () -> {
                         if (player.isOnline()) {
                             plugin.getTutorialGUI().open(player);
-                            plugin.setTutorialImmune(player, true);
                         }
                     },
                     40L
@@ -96,50 +95,43 @@ public class PlayerListener implements Listener {
             // Create and drop the essence craft
             ItemStack essenceCraft = plugin.getCraftManager().createEssenceCraft(victimEssence, icon);
             victim.getWorld().dropItemNaturally(victim.getLocation(), essenceCraft);
-            
-            // Release essence ownership
-            plugin.releaseEssence(victimEssence);
-            
-            // Announce essence is now available
+
+            // Remove this specific player's essence ownership
+            plugin.removeEssenceOwner(victimEssence, victim.getUniqueId());
+
+            // Announce essence was dropped
             String color = getEssenceColor(victimEssence);
             for (Player online : plugin.getServer().getOnlinePlayers()) {
                 online.sendMessage(
                     color +
                         "[Essence] " +
                         ChatColor.GRAY +
-                        "The " +
+                        victim.getName() +
+                        " dropped the " +
                         color +
                         victimEssence.getDisplayName() +
                         ChatColor.GRAY +
-                        " Essence is now available for claiming!"
+                        " Essence!"
                 );
             }
-            
+
             // Remove essence from victim
             victimData.setEssenceType(null);
         }
 
-        // Check grace period
-        long now = System.currentTimeMillis();
-        if (now < victimData.getGraceUntil()) {
+        // Lose energy on death
+        int maxEnergy = plugin.getConfig().getInt("max-energy", 10);
+        victimData.addEnergy(-1, maxEnergy);
+        plugin.getPlayerDataManager().save(victimData);
+
+        if (victimData.getEnergy() <= 0) {
             victim.sendMessage(
-                "§a[Grace Period] §7You did not lose energy due to grace period protection."
+                "§c§l[DEPLETED] §7Your essence is now depleted! You cannot use abilities!"
             );
         } else {
-            // Lose energy on death
-            int maxEnergy = plugin.getConfig().getInt("max-energy", 10);
-            victimData.addEnergy(-1, maxEnergy);
-            plugin.getPlayerDataManager().save(victimData);
-
-            if (victimData.getEnergy() <= 0) {
-                victim.sendMessage(
-                    "§c§l[DEPLETED] §7Your essence is now depleted! You cannot use abilities!"
-                );
-            } else {
-                victim.sendMessage(
-                    "§c[-1 Energy] §7Energy: " + victimData.getEnergy()
-                );
-            }
+            victim.sendMessage(
+                "§c[-1 Energy] §7Energy: " + victimData.getEnergy()
+            );
         }
 
         // Killer gains energy
@@ -148,7 +140,6 @@ public class PlayerListener implements Listener {
                 PlayerEssenceData killerData = plugin
                     .getPlayerDataManager()
                     .getOrCreate(killer);
-                int maxEnergy = plugin.getConfig().getInt("max-energy", 10);
                 int before = killerData.getEnergy();
                 killerData.addEnergy(1, maxEnergy);
                 plugin.getPlayerDataManager().save(killerData);
@@ -197,82 +188,15 @@ public class PlayerListener implements Listener {
     @EventHandler
     public void onPlayerRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
-        PlayerEssenceData data = plugin
-            .getPlayerDataManager()
-            .getOrCreate(player);
-
-        // Set respawn protection
-        long protectionDuration =
-            plugin.getConfig().getLong("respawn-protection-seconds", 5) * 1000L;
-        data.setRespawnProtectionUntil(
-            System.currentTimeMillis() + protectionDuration
-        );
 
         plugin.getScoreboardManager().updateFor(player);
         plugin.getTabListManager().updateFor(player);
     }
 
     @EventHandler
-    public void onPlayerDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player player)) return;
-
-        PlayerEssenceData data = plugin
-            .getPlayerDataManager()
-            .getOrCreate(player);
-        long now = System.currentTimeMillis();
-
-        // Respawn protection
-        if (now < data.getRespawnProtectionUntil()) {
-            event.setCancelled(true);
-            return;
-        }
-    }
-
-    @EventHandler
     public void onPlayerDamageByEntity(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player attacker)) return;
         if (!(event.getEntity() instanceof Player victim)) return;
-
-        // Check if tutorial immune
-        if (
-            plugin.isTutorialImmune(victim) || plugin.isTutorialImmune(attacker)
-        ) {
-            event.setCancelled(true);
-            return;
-        }
-
-        // Check respawn protection
-        PlayerEssenceData victimData = plugin
-            .getPlayerDataManager()
-            .getOrCreate(victim);
-        long now = System.currentTimeMillis();
-        if (now < victimData.getRespawnProtectionUntil()) {
-            event.setCancelled(true);
-            attacker.sendMessage(
-                "§c[PvP] §7That player has respawn protection!"
-            );
-            return;
-        }
-
-        // Check grace period
-        if (now < victimData.getGraceUntil()) {
-            event.setCancelled(true);
-            attacker.sendMessage(
-                "§a[Grace Period] §7That player is in their grace period!"
-            );
-            return;
-        }
-
-        PlayerEssenceData attackerData = plugin
-            .getPlayerDataManager()
-            .getOrCreate(attacker);
-        if (now < attackerData.getGraceUntil()) {
-            event.setCancelled(true);
-            attacker.sendMessage(
-                "§a[Grace Period] §7You cannot attack while in grace period!"
-            );
-            return;
-        }
 
         // Friendly fire check
         if (plugin.getTeamManager().areTeammates(attacker, victim)) {
@@ -282,6 +206,10 @@ public class PlayerListener implements Listener {
             );
             return;
         }
+
+        PlayerEssenceData attackerData = plugin
+            .getPlayerDataManager()
+            .getOrCreate(attacker);
 
         // Apply Divine essence damage multiplier if in dragon form
         if (attackerData.getEssenceType() == EssenceType.DIVINE) {
@@ -303,15 +231,15 @@ public class PlayerListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerDropItem(PlayerDropItemEvent event) {
+    public void onPlayerSwapHandItems(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
 
-        // Check if drop key is configured for abilities
-        boolean useDropKeyForAbilities = plugin
+        // Check if offhand swap key is configured for abilities
+        boolean useOffhandForAbilities = plugin
             .getConfig()
-            .getBoolean("use-drop-key-for-abilities", true);
-        if (!useDropKeyForAbilities) {
-            return; // Let items drop normally
+            .getBoolean("use-offhand-key-for-abilities", true);
+        if (!useOffhandForAbilities) {
+            return; // Let offhand swap happen normally
         }
 
         // Check if player is silenced
@@ -329,7 +257,7 @@ public class PlayerListener implements Listener {
         EssenceType type = data.getEssenceType();
 
         if (type == null) {
-            return; // No essence, let items drop
+            return; // No essence, let offhand swap happen normally
         }
 
         Essence essence = plugin.getEssenceRegistry().get(type);
@@ -337,7 +265,7 @@ public class PlayerListener implements Listener {
             return;
         }
 
-        // Cancel the drop and use ability instead
+        // Cancel the offhand swap and use ability instead
         event.setCancelled(true);
 
         // Check if sneaking for secondary

@@ -1,8 +1,8 @@
 package com.essencewars;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,6 +34,8 @@ import com.essencewars.ui.TutorialGUI;
 import com.essencewars.ui.CraftingGuideGUI;
 import com.essencewars.ui.AdminConfigGUI;
 import com.essencewars.ui.RecipeEditorGUI;
+import com.essencewars.ui.InfuseRecipesGUI;
+import com.essencewars.ui.EssenceHotbarIndicator;
 import com.essencewars.util.Keys;
 
 public final class EssenceWarsPlugin extends JavaPlugin {
@@ -51,11 +53,12 @@ public final class EssenceWarsPlugin extends JavaPlugin {
     private CraftingGuideGUI craftingGuideGUI;
     private AdminConfigGUI adminConfigGUI;
     private RecipeEditorGUI recipeEditorGUI;
+    private InfuseRecipesGUI infuseRecipesGUI;
+    private EssenceHotbarIndicator hotbarIndicator;
     private EssenceCraftManager craftManager;
     private AdvancedDebugLogger debugLogger;
 
-    private final Set<UUID> tutorialImmune = new HashSet<>();
-    private final Map<EssenceType, UUID> essenceOwners = new HashMap<>();
+    private final Map<EssenceType, Set<UUID>> essenceOwners = new HashMap<>();
 
     public static EssenceWarsPlugin getInstance() {
         return instance;
@@ -89,6 +92,8 @@ public final class EssenceWarsPlugin extends JavaPlugin {
         this.craftingGuideGUI = new CraftingGuideGUI(this);
         this.adminConfigGUI = new AdminConfigGUI(this);
         this.recipeEditorGUI = new RecipeEditorGUI(this);
+        this.infuseRecipesGUI = new InfuseRecipesGUI(this);
+        this.hotbarIndicator = new EssenceHotbarIndicator(this);
         this.craftManager = new EssenceCraftManager(this);
 
         registerRecipes();
@@ -97,6 +102,7 @@ public final class EssenceWarsPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerListener(this), this);
         getServer().getPluginManager().registerEvents(new GUIListener(this), this);
         getServer().getPluginManager().registerEvents(new EssenceCraftListener(this, craftManager), this);
+        getServer().getPluginManager().registerEvents(new com.essencewars.listeners.EssenceItemListener(this), this);
 
         EssenceCommand essenceCommand = new EssenceCommand(this);
         if (getCommand("essence") != null) {
@@ -110,12 +116,14 @@ public final class EssenceWarsPlugin extends JavaPlugin {
         playerDataManager.loadAll();
         scoreboardManager.start();
         tabListManager.start();
+        hotbarIndicator.start();
     }
 
     @Override
     public void onDisable() {
         scoreboardManager.stop();
         tabListManager.stop();
+        hotbarIndicator.stop();
         if (debugLogger != null) {
             debugLogger.logStatistics();
         }
@@ -167,6 +175,14 @@ public final class EssenceWarsPlugin extends JavaPlugin {
         return recipeEditorGUI;
     }
 
+    public InfuseRecipesGUI getInfuseRecipesGUI() {
+        return infuseRecipesGUI;
+    }
+
+    public EssenceHotbarIndicator getHotbarIndicator() {
+        return hotbarIndicator;
+    }
+
     public EssenceCraftManager getCraftManager() {
         return craftManager;
     }
@@ -175,36 +191,64 @@ public final class EssenceWarsPlugin extends JavaPlugin {
         return debugLogger;
     }
 
-    public void setTutorialImmune(Player player, boolean immune) {
-        UUID id = player.getUniqueId();
-        if (immune) {
-            tutorialImmune.add(id);
-        } else {
-            tutorialImmune.remove(id);
-        }
-    }
-
-    public boolean isTutorialImmune(Player player) {
-        return tutorialImmune.contains(player.getUniqueId());
-    }
-
     public boolean isEssenceOwned(EssenceType type) {
-        UUID owner = essenceOwners.get(type);
-        if (owner == null) return false;
-        // Check if owner is still online
-        Player ownerPlayer = Bukkit.getPlayer(owner);
-        return ownerPlayer != null && ownerPlayer.isOnline();
+        Set<UUID> owners = essenceOwners.get(type);
+        if (owners == null || owners.isEmpty()) return false;
+        // Check if any owner is still online
+        for (UUID owner : owners) {
+            Player ownerPlayer = Bukkit.getPlayer(owner);
+            if (ownerPlayer != null && ownerPlayer.isOnline()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public UUID getEssenceOwner(EssenceType type) {
-        return essenceOwners.get(type);
+        // For backwards compatibility, return the first owner (mainly used for Divine)
+        Set<UUID> owners = essenceOwners.get(type);
+        if (owners == null || owners.isEmpty()) return null;
+        return owners.iterator().next();
+    }
+
+    public Set<UUID> getEssenceOwners(EssenceType type) {
+        return essenceOwners.getOrDefault(type, new HashSet<>());
+    }
+
+    public int getEssenceOwnerCount(EssenceType type) {
+        Set<UUID> owners = essenceOwners.get(type);
+        if (owners == null) return 0;
+        // Count only online owners
+        int count = 0;
+        for (UUID owner : owners) {
+            Player p = Bukkit.getPlayer(owner);
+            if (p != null && p.isOnline()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public boolean hasEssence(UUID playerId, EssenceType type) {
+        Set<UUID> owners = essenceOwners.get(type);
+        return owners != null && owners.contains(playerId);
     }
 
     public void setEssenceOwner(EssenceType type, UUID playerId) {
         if (playerId == null) {
             essenceOwners.remove(type);
         } else {
-            essenceOwners.put(type, playerId);
+            essenceOwners.computeIfAbsent(type, k -> new HashSet<>()).add(playerId);
+        }
+    }
+
+    public void removeEssenceOwner(EssenceType type, UUID playerId) {
+        Set<UUID> owners = essenceOwners.get(type);
+        if (owners != null) {
+            owners.remove(playerId);
+            if (owners.isEmpty()) {
+                essenceOwners.remove(type);
+            }
         }
     }
 
@@ -214,6 +258,7 @@ public final class EssenceWarsPlugin extends JavaPlugin {
     }
 
     private void registerRecipes() {
+        // Energy Crystal recipe
         int value = getConfig().getInt("crystal-energy-value", 1);
         ItemStack result = EnergyCrystalItem.create(value);
         NamespacedKey key = new NamespacedKey(this, "energy_crystal");
@@ -223,5 +268,17 @@ public final class EssenceWarsPlugin extends JavaPlugin {
         recipe.setIngredient('B', Material.ENDER_PEARL);
         recipe.setIngredient('C', Material.DIAMOND);
         Bukkit.addRecipe(recipe);
+
+        // Essence Upgrader recipe
+        ItemStack upgraderResult = com.essencewars.items.EssenceUpgraderItem.create();
+        NamespacedKey upgraderKey = new NamespacedKey(this, "essence_upgrader");
+        ShapedRecipe upgraderRecipe = new ShapedRecipe(upgraderKey, upgraderResult);
+        upgraderRecipe.shape("DED", "GNG", "DBD");
+        upgraderRecipe.setIngredient('D', Material.DIAMOND);
+        upgraderRecipe.setIngredient('E', Material.ENCHANTED_GOLDEN_APPLE);
+        upgraderRecipe.setIngredient('G', Material.GOLD_BLOCK);
+        upgraderRecipe.setIngredient('N', Material.NETHER_STAR);
+        upgraderRecipe.setIngredient('B', Material.BLAZE_ROD);
+        Bukkit.addRecipe(upgraderRecipe);
     }
 }

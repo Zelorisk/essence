@@ -3,7 +3,6 @@ package com.essencewars.ui;
 import com.essencewars.EssenceWarsPlugin;
 import com.essencewars.energy.PlayerEssenceData;
 import com.essencewars.essence.EssenceType;
-import com.essencewars.team.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -51,19 +50,8 @@ public class TabListManager {
         PlayerEssenceData data = plugin
             .getPlayerDataManager()
             .getOrCreate(player);
-        Team team = plugin.getTeamManager().getTeam(player);
 
         StringBuilder displayName = new StringBuilder();
-
-        // Team prefix
-        if (team != null) {
-            String teamColor = getTeamColor(team);
-            displayName
-                .append(teamColor)
-                .append("[")
-                .append(team.getName())
-                .append("] ");
-        }
 
         // Essence color
         EssenceType essence = data.getEssenceType();
@@ -104,25 +92,5 @@ public class TabListManager {
             case ARCANE -> "§d";
             case DIVINE -> "§6§l";
         };
-    }
-
-    private String getTeamColor(Team team) {
-        // Hash the team name to get a consistent color
-        int hash = Math.abs(team.getName().hashCode());
-        ChatColor[] colors = {
-            ChatColor.RED,
-            ChatColor.GOLD,
-            ChatColor.YELLOW,
-            ChatColor.GREEN,
-            ChatColor.AQUA,
-            ChatColor.BLUE,
-            ChatColor.LIGHT_PURPLE,
-            ChatColor.DARK_RED,
-            ChatColor.DARK_GREEN,
-            ChatColor.DARK_AQUA,
-            ChatColor.DARK_BLUE,
-            ChatColor.DARK_PURPLE,
-        };
-        return colors[hash % colors.length].toString();
     }
 }

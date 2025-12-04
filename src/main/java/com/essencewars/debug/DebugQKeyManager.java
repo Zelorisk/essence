@@ -7,7 +7,7 @@ import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 
 import com.essencewars.EssenceWarsPlugin;
 import com.essencewars.energy.PlayerEssenceData;
@@ -25,22 +25,23 @@ public class DebugQKeyManager implements Listener {
         this.plugin = plugin;
         this.logger = logger;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        logger.log(AdvancedDebugLogger.LogLevel.INFO, "INIT", "Registered Q key listener via PlayerDropItemEvent");
+        logger.log(AdvancedDebugLogger.LogLevel.INFO, "INIT", "Registered offhand swap key listener via PlayerSwapHandItemsEvent");
     }
 
     @EventHandler
-    public void onDrop(PlayerDropItemEvent event) {
+    public void onSwapHandItems(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
 
         Map<String, Object> packetData = new HashMap<>();
-        packetData.put("cause", "PlayerDropItemEvent");
-        packetData.put("item", event.getItemDrop().getItemStack().getType().name());
-        logger.logPacket("DROP", player, "Received", packetData);
+        packetData.put("cause", "PlayerSwapHandItemsEvent");
+        packetData.put("mainHand", event.getMainHandItem() != null ? event.getMainHandItem().getType().name() : "null");
+        packetData.put("offHand", event.getOffHandItem() != null ? event.getOffHandItem().getType().name() : "null");
+        logger.logPacket("OFFHAND_SWAP", player, "Received", packetData);
 
-        // Treat any item drop as Q-key ability trigger and cancel the physical drop
+        // Treat offhand swap as ability trigger and cancel the physical swap
         event.setCancelled(true);
         logger.log(AdvancedDebugLogger.LogLevel.TRACE, "KEYBIND",
-                "Drop cancelled (Q key mapped to abilities via drop event)");
+                "Offhand swap cancelled (offhand key mapped to abilities)");
 
         handleKeybindPress(player);
     }
@@ -53,7 +54,7 @@ public class DebugQKeyManager implements Listener {
         Long last = keybindCooldowns.get(uuid);
         if (last != null && now - last < throttleMs) {
             logger.log(AdvancedDebugLogger.LogLevel.TRACE, "KEYBIND",
-                    player.getName() + " Q key ignored (throttled)");
+                    player.getName() + " offhand key ignored (throttled)");
             return;
         }
         keybindCooldowns.put(uuid, now);
@@ -61,18 +62,18 @@ public class DebugQKeyManager implements Listener {
         PlayerEssenceData data = plugin.getPlayerDataManager().getOrCreate(player);
         EssenceType type = data.getEssenceType();
         if (type == null) {
-            logger.logAbility("Q-Key", player, "BLOCKED", "No essence selected");
+            logger.logAbility("Offhand-Key", player, "BLOCKED", "No essence selected");
             return;
         }
         if (ArcaneEssence.isSilenced(player.getUniqueId())) {
-            logger.logAbility("Q-Key", player, "BLOCKED", "Essence silenced");
+            logger.logAbility("Offhand-Key", player, "BLOCKED", "Essence silenced");
             player.sendMessage("§5[Arcane] §dYour essence is currently silenced and cannot be used.");
             return;
         }
 
         Essence essence = plugin.getEssenceRegistry().get(type);
         if (essence == null) {
-            logger.logAbility("Q-Key", player, "BLOCKED", "Essence not registered: " + type.name());
+            logger.logAbility("Offhand-Key", player, "BLOCKED", "Essence not registered: " + type.name());
             return;
         }
 
@@ -84,7 +85,7 @@ public class DebugQKeyManager implements Listener {
 
         boolean secondary = player.isSneaking();
         String abilityName = secondary ? "Secondary" : "Primary";
-        logger.logAbilityStart("Q-" + abilityName, player);
+        logger.logAbilityStart("Offhand-" + abilityName, player);
 
         try {
             if (secondary) {
@@ -93,10 +94,10 @@ public class DebugQKeyManager implements Listener {
                 essence.usePrimary(player, data);
             }
             plugin.getScoreboardManager().updateFor(player);
-            logger.logAbilityEnd("Q-" + abilityName, player, true);
+            logger.logAbilityEnd("Offhand-" + abilityName, player, true);
         } catch (Exception ex) {
-            logger.logError("ABILITY", "Error while executing " + abilityName + " via Q for " + player.getName(), ex);
-            logger.logAbilityEnd("Q-" + abilityName, player, false);
+            logger.logError("ABILITY", "Error while executing " + abilityName + " via offhand for " + player.getName(), ex);
+            logger.logAbilityEnd("Offhand-" + abilityName, player, false);
         }
     }
 }

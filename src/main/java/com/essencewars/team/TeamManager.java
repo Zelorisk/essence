@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.configuration.ConfigurationSection;
@@ -22,6 +24,7 @@ public class TeamManager {
     private final Map<String, Team> teamsByName = new HashMap<>();
     private final Map<UUID, Team> teamsByPlayer = new HashMap<>();
     private final Map<Team, TeamHome> teamHomes = new HashMap<>();
+    private final Map<Team, Set<UUID>> pendingInvitations = new HashMap<>();
     private final File file;
     private FileConfiguration config;
 
@@ -49,7 +52,21 @@ public class TeamManager {
             String base = "teams." + team.getName() + ".";
             config.set(base + "owner", team.getOwner().toString());
             config.set(base + "members", team.getMembers().stream().map(UUID::toString).toList());
-            
+
+            // Save ranks
+            for (UUID member : team.getMembers()) {
+                Team.TeamRank rank = team.getRank(member);
+                if (rank != null && rank != Team.TeamRank.MEMBER) {
+                    config.set(base + "ranks." + member.toString(), rank.name());
+                }
+            }
+
+            // Save pending invitations
+            Set<UUID> invites = pendingInvitations.get(team);
+            if (invites != null && !invites.isEmpty()) {
+                config.set(base + "invitations", invites.stream().map(UUID::toString).toList());
+            }
+
             // Save team homes
             TeamHome teamHome = teamHomes.get(team);
             if (teamHome != null && !teamHome.getHomes().isEmpty()) {
@@ -75,6 +92,7 @@ public class TeamManager {
         teamsByName.clear();
         teamsByPlayer.clear();
         teamHomes.clear();
+        pendingInvitations.clear();
         ConfigurationSection section = config.getConfigurationSection("teams");
         if (section == null) {
             return;
@@ -95,8 +113,38 @@ public class TeamManager {
                 } catch (IllegalArgumentException ignored) {
                 }
             }
+
+            // Load ranks
+            ConfigurationSection ranksSection = section.getConfigurationSection(base + "ranks");
+            if (ranksSection != null) {
+                for (String uuidStr : ranksSection.getKeys(false)) {
+                    try {
+                        UUID memberId = UUID.fromString(uuidStr);
+                        String rankStr = section.getString(base + "ranks." + uuidStr);
+                        if (rankStr != null) {
+                            Team.TeamRank rank = Team.TeamRank.valueOf(rankStr);
+                            team.setRank(memberId, rank);
+                        }
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+            }
+
+            // Load pending invitations
+            java.util.List<String> invitesList = section.getStringList(base + "invitations");
+            if (!invitesList.isEmpty()) {
+                Set<UUID> invites = new HashSet<>();
+                for (String inviteStr : invitesList) {
+                    try {
+                        invites.add(UUID.fromString(inviteStr));
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+                pendingInvitations.put(team, invites);
+            }
+
             register(team);
-            
+
             // Load team homes
             TeamHome teamHome = new TeamHome(team);
             ConfigurationSection homesSection = section.getConfigurationSection(base + "homes");
@@ -207,5 +255,47 @@ public class TeamManager {
     
     public TeamHome getTeamHome(Team team) {
         return teamHomes.computeIfAbsent(team, TeamHome::new);
+    }
+
+    public void invitePlayer(Team team, UUID playerId) {
+        pendingInvitations.computeIfAbsent(team, k -> new HashSet<>()).add(playerId);
+    }
+
+    public void removeInvitation(Team team, UUID playerId) {
+        Set<UUID> invites = pendingInvitations.get(team);
+        if (invites != null) {
+            invites.remove(playerId);
+            if (invites.isEmpty()) {
+                pendingInvitations.remove(team);
+            }
+        }
+    }
+
+    public boolean hasInvitation(UUID playerId, Team team) {
+        Set<UUID> invites = pendingInvitations.get(team);
+        return invites != null && invites.contains(playerId);
+    }
+
+    public Set<Team> getInvitations(UUID playerId) {
+        Set<Team> result = new HashSet<>();
+        for (Map.Entry<Team, Set<UUID>> entry : pendingInvitations.entrySet()) {
+            if (entry.getValue().contains(playerId)) {
+                result.add(entry.getKey());
+            }
+        }
+        return result;
+    }
+
+    public boolean acceptInvitation(Player player, Team team) {
+        if (!hasInvitation(player.getUniqueId(), team)) {
+            return false;
+        }
+        if (getTeam(player) != null) {
+            return false;
+        }
+        team.addMember(player.getUniqueId());
+        teamsByPlayer.put(player.getUniqueId(), team);
+        removeInvitation(team, player.getUniqueId());
+        return true;
     }
 }

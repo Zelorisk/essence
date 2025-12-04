@@ -25,54 +25,52 @@ public class EssenceCraftManager {
     }
 
     public void registerRecipes() {
-        // Void Essence - More expensive: Dragon Breath and Crying Obsidian
-        registerEssenceCraft(EssenceType.VOID, Material.ENDER_PEARL, 
-            "DDD", "DED", "DDD",
-            'D', Material.CRYING_OBSIDIAN,
-            'E', Material.DRAGON_BREATH);
+        // Void Essence - Teleportation/Darkness theme
+        registerEssenceCraft(EssenceType.VOID, Material.ENDER_PEARL,
+            "OOO", "OEO", "OOO",
+            'O', Material.OBSIDIAN,
+            'E', Material.ENDER_PEARL);
 
-        // Inferno Essence - Harder: Blaze Powder, Fire Charges, and Magma Blocks
+        // Inferno Essence - Fire/Heat theme
         registerEssenceCraft(EssenceType.INFERNO, Material.BLAZE_ROD,
-            "FMF", "MBM", "FMF",
-            'F', Material.FIRE_CHARGE,
-            'M', Material.MAGMA_BLOCK,
+            "NLN", "LBL", "NLN",
+            'N', Material.NETHERRACK,
+            'L', Material.LAVA_BUCKET,
             'B', Material.BLAZE_POWDER);
 
-        // Nature Essence - More resources: Heart of the Sea with rare plants
+        // Nature Essence - Plants/Life theme
         registerEssenceCraft(EssenceType.NATURE, Material.OAK_SAPLING,
-            "GVG", "VHV", "GSG",
-            'G', Material.GLOW_BERRIES,
-            'V', Material.VINE,
-            'H', Material.HEART_OF_THE_SEA,
-            'S', Material.SPORE_BLOSSOM);
+            "SWS", "WBW", "SWS",
+            'S', Material.OAK_SAPLING,
+            'W', Material.WHEAT,
+            'B', Material.BONE_MEAL);
 
-        // Oracle Essence - Much harder: Nether Stars and Dragon's Breath
+        // Oracle Essence - Knowledge/Vision theme
         registerEssenceCraft(EssenceType.ORACLE, Material.BEACON,
-            "NSN", "DBD", "NSN",
-            'N', Material.NETHER_STAR,
-            'S', Material.SCULK_CATALYST,
-            'D', Material.DRAGON_BREATH,
-            'B', Material.BEACON);
+            "LAL", "AGA", "LAL",
+            'L', Material.LAPIS_LAZULI,
+            'A', Material.AMETHYST_SHARD,
+            'G', Material.GLASS);
 
-        // Phantom Essence - Harder: Dragon Breath and Sculk Shriekers
+        // Phantom Essence - Shadow/Stealth theme
         registerEssenceCraft(EssenceType.PHANTOM, Material.PHANTOM_MEMBRANE,
-            "DSD", "SPS", "DSD",
-            'D', Material.DRAGON_BREATH,
-            'S', Material.SCULK_SHRIEKER,
+            "CSC", "SPS", "CSC",
+            'C', Material.COAL,
+            'S', Material.SOUL_SAND,
             'P', Material.PHANTOM_MEMBRANE);
 
-        // Titan Essence - Much harder: Ancient Debris and Netherite
+        // Titan Essence - Strength/Durability theme
         registerEssenceCraft(EssenceType.TITAN, Material.ANVIL,
-            "NNN", "NAN", "NNN",
-            'N', Material.NETHERITE_BLOCK,
-            'A', Material.ANCIENT_DEBRIS);
+            "III", "IDI", "III",
+            'I', Material.IRON_BLOCK,
+            'D', Material.DIAMOND);
 
-        // Arcane Essence - Harder: Enchanted Golden Apples and End Crystals
+        // Arcane Essence - Magic/Enchantment theme
         registerEssenceCraft(EssenceType.ARCANE, Material.ENCHANTED_BOOK,
-            "NSN", "SES", "NSN",
-            'N', Material.NETHER_STAR,
-            'S', Material.ENCHANTED_GOLDEN_APPLE,
-            'E', Material.END_CRYSTAL);
+            "LAL", "AEA", "LAL",
+            'L', Material.LAPIS_LAZULI,
+            'A', Material.AMETHYST_SHARD,
+            'E', Material.ENCHANTED_BOOK);
 
         // Divine Essence - Requires ALL essences + Dragon Egg + Dragon Head
         registerDivineEssence();
@@ -181,107 +179,106 @@ public class EssenceCraftManager {
      */
     public ItemStack[] getRecipeDisplay(EssenceType type) {
         ItemStack[] recipe = new ItemStack[9];
-        
+
         switch (type) {
             case VOID:
-                recipe[0] = new ItemStack(Material.CRYING_OBSIDIAN);
-                recipe[1] = new ItemStack(Material.CRYING_OBSIDIAN);
-                recipe[2] = new ItemStack(Material.CRYING_OBSIDIAN);
-                recipe[3] = new ItemStack(Material.CRYING_OBSIDIAN);
-                recipe[4] = new ItemStack(Material.DRAGON_BREATH);
-                recipe[5] = new ItemStack(Material.CRYING_OBSIDIAN);
-                recipe[6] = new ItemStack(Material.CRYING_OBSIDIAN);
-                recipe[7] = new ItemStack(Material.CRYING_OBSIDIAN);
-                recipe[8] = new ItemStack(Material.CRYING_OBSIDIAN);
+                recipe[0] = new ItemStack(Material.OBSIDIAN);
+                recipe[1] = new ItemStack(Material.OBSIDIAN);
+                recipe[2] = new ItemStack(Material.OBSIDIAN);
+                recipe[3] = new ItemStack(Material.OBSIDIAN);
+                recipe[4] = new ItemStack(Material.ENDER_PEARL);
+                recipe[5] = new ItemStack(Material.OBSIDIAN);
+                recipe[6] = new ItemStack(Material.OBSIDIAN);
+                recipe[7] = new ItemStack(Material.OBSIDIAN);
+                recipe[8] = new ItemStack(Material.OBSIDIAN);
                 break;
-                
+
             case INFERNO:
-                recipe[0] = new ItemStack(Material.FIRE_CHARGE);
-                recipe[1] = new ItemStack(Material.MAGMA_BLOCK);
-                recipe[2] = new ItemStack(Material.FIRE_CHARGE);
-                recipe[3] = new ItemStack(Material.MAGMA_BLOCK);
+                recipe[0] = new ItemStack(Material.NETHERRACK);
+                recipe[1] = new ItemStack(Material.LAVA_BUCKET);
+                recipe[2] = new ItemStack(Material.NETHERRACK);
+                recipe[3] = new ItemStack(Material.LAVA_BUCKET);
                 recipe[4] = new ItemStack(Material.BLAZE_POWDER);
-                recipe[5] = new ItemStack(Material.MAGMA_BLOCK);
-                recipe[6] = new ItemStack(Material.FIRE_CHARGE);
-                recipe[7] = new ItemStack(Material.MAGMA_BLOCK);
-                recipe[8] = new ItemStack(Material.FIRE_CHARGE);
+                recipe[5] = new ItemStack(Material.LAVA_BUCKET);
+                recipe[6] = new ItemStack(Material.NETHERRACK);
+                recipe[7] = new ItemStack(Material.LAVA_BUCKET);
+                recipe[8] = new ItemStack(Material.NETHERRACK);
                 break;
-                
+
             case NATURE:
-                recipe[0] = new ItemStack(Material.GLOW_BERRIES);
-                recipe[1] = new ItemStack(Material.VINE);
-                recipe[2] = new ItemStack(Material.GLOW_BERRIES);
-                recipe[3] = new ItemStack(Material.VINE);
-                recipe[4] = new ItemStack(Material.HEART_OF_THE_SEA);
-                recipe[5] = new ItemStack(Material.VINE);
-                recipe[6] = new ItemStack(Material.GLOW_BERRIES);
-                recipe[7] = new ItemStack(Material.SPORE_BLOSSOM);
-                recipe[8] = new ItemStack(Material.GLOW_BERRIES);
+                recipe[0] = new ItemStack(Material.OAK_SAPLING);
+                recipe[1] = new ItemStack(Material.WHEAT);
+                recipe[2] = new ItemStack(Material.OAK_SAPLING);
+                recipe[3] = new ItemStack(Material.WHEAT);
+                recipe[4] = new ItemStack(Material.BONE_MEAL);
+                recipe[5] = new ItemStack(Material.WHEAT);
+                recipe[6] = new ItemStack(Material.OAK_SAPLING);
+                recipe[7] = new ItemStack(Material.WHEAT);
+                recipe[8] = new ItemStack(Material.OAK_SAPLING);
                 break;
-                
+
             case ORACLE:
-                recipe[0] = new ItemStack(Material.NETHER_STAR);
-                recipe[1] = new ItemStack(Material.SCULK_CATALYST);
-                recipe[2] = new ItemStack(Material.NETHER_STAR);
-                recipe[3] = new ItemStack(Material.DRAGON_BREATH);
-                recipe[4] = new ItemStack(Material.BEACON);
-                recipe[5] = new ItemStack(Material.DRAGON_BREATH);
-                recipe[6] = new ItemStack(Material.NETHER_STAR);
-                recipe[7] = new ItemStack(Material.SCULK_CATALYST);
-                recipe[8] = new ItemStack(Material.NETHER_STAR);
+                recipe[0] = new ItemStack(Material.LAPIS_LAZULI);
+                recipe[1] = new ItemStack(Material.AMETHYST_SHARD);
+                recipe[2] = new ItemStack(Material.LAPIS_LAZULI);
+                recipe[3] = new ItemStack(Material.AMETHYST_SHARD);
+                recipe[4] = new ItemStack(Material.GLASS);
+                recipe[5] = new ItemStack(Material.AMETHYST_SHARD);
+                recipe[6] = new ItemStack(Material.LAPIS_LAZULI);
+                recipe[7] = new ItemStack(Material.AMETHYST_SHARD);
+                recipe[8] = new ItemStack(Material.LAPIS_LAZULI);
                 break;
-                
+
             case PHANTOM:
-                recipe[0] = new ItemStack(Material.DRAGON_BREATH);
-                recipe[1] = new ItemStack(Material.SCULK_SHRIEKER);
-                recipe[2] = new ItemStack(Material.DRAGON_BREATH);
-                recipe[3] = new ItemStack(Material.SCULK_SHRIEKER);
+                recipe[0] = new ItemStack(Material.COAL);
+                recipe[1] = new ItemStack(Material.SOUL_SAND);
+                recipe[2] = new ItemStack(Material.COAL);
+                recipe[3] = new ItemStack(Material.SOUL_SAND);
                 recipe[4] = new ItemStack(Material.PHANTOM_MEMBRANE);
-                recipe[5] = new ItemStack(Material.SCULK_SHRIEKER);
-                recipe[6] = new ItemStack(Material.DRAGON_BREATH);
-                recipe[7] = new ItemStack(Material.SCULK_SHRIEKER);
-                recipe[8] = new ItemStack(Material.DRAGON_BREATH);
+                recipe[5] = new ItemStack(Material.SOUL_SAND);
+                recipe[6] = new ItemStack(Material.COAL);
+                recipe[7] = new ItemStack(Material.SOUL_SAND);
+                recipe[8] = new ItemStack(Material.COAL);
                 break;
-                
+
             case TITAN:
-                recipe[0] = new ItemStack(Material.NETHERITE_BLOCK);
-                recipe[1] = new ItemStack(Material.NETHERITE_BLOCK);
-                recipe[2] = new ItemStack(Material.NETHERITE_BLOCK);
-                recipe[3] = new ItemStack(Material.NETHERITE_BLOCK);
-                recipe[4] = new ItemStack(Material.ANCIENT_DEBRIS);
-                recipe[5] = new ItemStack(Material.NETHERITE_BLOCK);
-                recipe[6] = new ItemStack(Material.NETHERITE_BLOCK);
-                recipe[7] = new ItemStack(Material.NETHERITE_BLOCK);
-                recipe[8] = new ItemStack(Material.NETHERITE_BLOCK);
+                recipe[0] = new ItemStack(Material.IRON_BLOCK);
+                recipe[1] = new ItemStack(Material.IRON_BLOCK);
+                recipe[2] = new ItemStack(Material.IRON_BLOCK);
+                recipe[3] = new ItemStack(Material.IRON_BLOCK);
+                recipe[4] = new ItemStack(Material.DIAMOND);
+                recipe[5] = new ItemStack(Material.IRON_BLOCK);
+                recipe[6] = new ItemStack(Material.IRON_BLOCK);
+                recipe[7] = new ItemStack(Material.IRON_BLOCK);
+                recipe[8] = new ItemStack(Material.IRON_BLOCK);
                 break;
-                
+
             case ARCANE:
-                recipe[0] = new ItemStack(Material.NETHER_STAR);
-                recipe[1] = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
-                recipe[2] = new ItemStack(Material.NETHER_STAR);
-                recipe[3] = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
-                recipe[4] = new ItemStack(Material.END_CRYSTAL);
-                recipe[5] = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
-                recipe[6] = new ItemStack(Material.NETHER_STAR);
-                recipe[7] = new ItemStack(Material.ENCHANTED_GOLDEN_APPLE);
-                recipe[8] = new ItemStack(Material.NETHER_STAR);
+                recipe[0] = new ItemStack(Material.LAPIS_LAZULI);
+                recipe[1] = new ItemStack(Material.AMETHYST_SHARD);
+                recipe[2] = new ItemStack(Material.LAPIS_LAZULI);
+                recipe[3] = new ItemStack(Material.AMETHYST_SHARD);
+                recipe[4] = new ItemStack(Material.ENCHANTED_BOOK);
+                recipe[5] = new ItemStack(Material.AMETHYST_SHARD);
+                recipe[6] = new ItemStack(Material.LAPIS_LAZULI);
+                recipe[7] = new ItemStack(Material.AMETHYST_SHARD);
+                recipe[8] = new ItemStack(Material.LAPIS_LAZULI);
                 break;
-                
+
             case DIVINE:
-                // Divine requires all 7 other essence crafts + dragon egg + dragon head
-                // Center: Dragon Egg, Corners: 4 essence crafts, Sides: 3 essence crafts, Top: Dragon Head
+                // Divine requires all 7 other essence crafts + nether star + golden apple
                 recipe[0] = createEssenceCraft(EssenceType.VOID, Material.ENDER_PEARL);
-                recipe[1] = new ItemStack(Material.DRAGON_HEAD);
+                recipe[1] = new ItemStack(Material.NETHER_STAR);
                 recipe[2] = createEssenceCraft(EssenceType.INFERNO, Material.BLAZE_ROD);
                 recipe[3] = createEssenceCraft(EssenceType.NATURE, Material.OAK_SAPLING);
-                recipe[4] = new ItemStack(Material.DRAGON_EGG);
+                recipe[4] = new ItemStack(Material.GOLDEN_APPLE);
                 recipe[5] = createEssenceCraft(EssenceType.ORACLE, Material.BEACON);
                 recipe[6] = createEssenceCraft(EssenceType.PHANTOM, Material.PHANTOM_MEMBRANE);
                 recipe[7] = createEssenceCraft(EssenceType.TITAN, Material.ANVIL);
                 recipe[8] = createEssenceCraft(EssenceType.ARCANE, Material.ENCHANTED_BOOK);
                 break;
         }
-        
+
         return recipe;
     }
 }

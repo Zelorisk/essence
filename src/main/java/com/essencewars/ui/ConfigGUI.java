@@ -66,23 +66,23 @@ public class ConfigGUI {
     }
 
     private void addDropKeyToggle(Inventory gui, FileConfiguration config) {
-        boolean useDropKey = config.getBoolean(
-            "use-drop-key-for-abilities",
+        boolean useOffhandKey = config.getBoolean(
+            "use-offhand-key-for-abilities",
             true
         );
         ItemStack toggle = new ItemStack(
-            useDropKey ? Material.LIME_DYE : Material.GRAY_DYE
+            useOffhandKey ? Material.LIME_DYE : Material.GRAY_DYE
         );
         ItemMeta meta = toggle.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName("§eQ Key Function");
+            meta.setDisplayName("§eOffhand Key Function");
             meta.setLore(
                 Arrays.asList(
                     "§7Current: " +
-                        (useDropKey ? "§aAbilities" : "§cDrop Items"),
+                        (useOffhandKey ? "§aAbilities" : "§cSwap Items"),
                     "",
-                    "§7Q = Primary Ability",
-                    "§7Shift+Q = Secondary Ability",
+                    "§7F = Primary Ability",
+                    "§7Shift+F = Secondary Ability",
                     "",
                     "§eClick to toggle"
                 )

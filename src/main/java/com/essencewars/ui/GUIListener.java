@@ -54,17 +54,19 @@ public class GUIListener implements Listener {
 
         // Universal options
         if (event.getSlot() == 9) {
-            // Drop key toggle
+            // Offhand key toggle
             boolean current = config.getBoolean(
-                "use-drop-key-for-abilities",
+                "use-offhand-key-for-abilities",
                 true
             );
-            config.set("use-drop-key-for-abilities", !current);
+            config.set("use-offhand-key-for-abilities", !current);
             plugin.saveConfig();
+            player.sendMessage("§e§l[ESSENCE CONFIG]");
             player.sendMessage(
-                "§e[Essence] §7Q key now " +
-                    (!current ? "§acasts abilities" : "§cdrops items")
+                "§e[Essence] §7Offhand key (F) now " +
+                    (!current ? "§acasts abilities §7(Press F to use powers)" : "§cswaps items §7(Use /essence primary or /essence secondary for abilities)")
             );
+            player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1.0F, 1.0F);
             plugin.getConfigGUI().open(player);
             return;
         }
@@ -405,7 +407,6 @@ public class GUIListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        plugin.setTutorialImmune(player, false);
     }
 
     @EventHandler

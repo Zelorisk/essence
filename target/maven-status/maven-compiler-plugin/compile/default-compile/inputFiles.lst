@@ -21,6 +21,7 @@
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/essence/impl/TitanEssence.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/essence/impl/VoidEssence.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/items/EnergyCrystalItem.java
+/Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/items/EssenceUpgraderItem.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/listeners/EssenceCraftListener.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/listeners/EssenceItemListener.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/listeners/PlayerListener.java
@@ -30,7 +31,9 @@
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/AdminConfigGUI.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/ConfigGUI.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/CraftingGuideGUI.java
+/Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/EssenceHotbarIndicator.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/GUIListener.java
+/Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/InfuseRecipesGUI.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/RecipeEditorGUI.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/ScoreboardManager.java
 /Users/chris/Desktop/repos/plugins/src/main/java/com/essencewars/ui/TabListManager.java

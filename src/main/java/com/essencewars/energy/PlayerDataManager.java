@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -70,13 +69,8 @@ public class PlayerDataManager {
             data.put(uuid, loaded);
             return loaded;
         }
-        int firstEnergy = 3;
-        EssenceType[] types = EssenceType.values();
-        EssenceType randomType = types[ThreadLocalRandom.current().nextInt(types.length)];
-        PlayerEssenceData created = new PlayerEssenceData(uuid, randomType, EssenceTier.TIER1, firstEnergy);
-        long minutes = plugin.getConfig().getLong("grace-period-minutes", 30L);
-        long graceUntil = System.currentTimeMillis() + minutes * 60_000L;
-        created.setGraceUntil(graceUntil);
+        int firstEnergy = plugin.getConfig().getInt("starting-energy", 5);
+        PlayerEssenceData created = new PlayerEssenceData(uuid, null, EssenceTier.TIER1, firstEnergy);
         data.put(uuid, created);
         save(created);
         return created;
@@ -104,8 +98,6 @@ public class PlayerDataManager {
         EssenceType type = essenceId == null ? null : EssenceType.fromString(essenceId);
         EssenceTier tier = EssenceTier.valueOf(tierName);
         PlayerEssenceData ped = new PlayerEssenceData(uuid, type, tier, energy);
-        long graceUntil = config.getLong(base + "graceUntil", 0L);
-        ped.setGraceUntil(graceUntil);
         boolean tutorialSeen = config.getBoolean(base + "tutorialSeen", false);
         ped.setTutorialSeen(tutorialSeen);
         return ped;
@@ -116,7 +108,6 @@ public class PlayerDataManager {
         config.set(base + "energy", ped.getEnergy());
         config.set(base + "essence", ped.getEssenceType() == null ? null : ped.getEssenceType().getId());
         config.set(base + "tier", ped.getTier().name());
-        config.set(base + "graceUntil", ped.getGraceUntil());
         config.set(base + "tutorialSeen", ped.hasSeenTutorial());
     }
 }

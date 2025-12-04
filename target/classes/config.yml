@@ -3,9 +3,10 @@ max-energy: 10
 energy-per-kill: 1
 energy-per-death: -1
 crystal-energy-value: 1
-respawn-protection-seconds: 5
 blacklisted-worlds: []
-grace-period-minutes: 30
+
+# Set to true to use offhand swap key (F) for abilities, false to use it for normal offhand swapping
+use-offhand-key-for-abilities: true
 
 energy-states:
   RADIANT:

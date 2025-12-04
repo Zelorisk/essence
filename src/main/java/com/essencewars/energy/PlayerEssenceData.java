@@ -13,8 +13,6 @@ public class PlayerEssenceData {
     private EssenceType essenceType;
     private EssenceTier tier;
     private int energy;
-    private long respawnProtectionUntil;
-    private long graceUntil;
     private boolean tutorialSeen;
     private final Map<String, Long> cooldowns = new HashMap<>();
 
@@ -59,22 +57,6 @@ public class PlayerEssenceData {
 
     public EnergyState getEnergyState() {
         return EnergyState.fromEnergy(energy);
-    }
-
-    public long getRespawnProtectionUntil() {
-        return respawnProtectionUntil;
-    }
-
-    public void setRespawnProtectionUntil(long respawnProtectionUntil) {
-        this.respawnProtectionUntil = respawnProtectionUntil;
-    }
-
-    public long getGraceUntil() {
-        return graceUntil;
-    }
-
-    public void setGraceUntil(long graceUntil) {
-        this.graceUntil = graceUntil;
     }
 
     public boolean hasSeenTutorial() {
